@@ -41,7 +41,7 @@ const Helpers = {
   }
 }
 
-class DingolyticsTracker {
+class DingolyticsSDK {
   options: Options;
   _log: Function;
   _template: Event;
@@ -77,7 +77,7 @@ class DingolyticsTracker {
   }
 
   init() {
-    this._log("DingolyticsTracker: init", this.options);
+    this._log("DingolyticsSDK: init", this.options);
 
     if (this.options.autoTrackPageViews) {
       this.trackPageView(location.pathname);
@@ -87,11 +87,11 @@ class DingolyticsTracker {
   setUser(userId: string, userProps?: object) {
     this._template.user_id = userId ? userId : null;
     this._template.user_props = userProps ? userProps : {};
-    this._log("DingolyticsTracker: setUser:", userId, userProps);
+    this._log("DingolyticsSDK: setUser:", userId, userProps);
   }
 
   trackEvent(event: string, data: any) {
-    this._log("DingolyticsTracker: trackEvent: event=", event, "data=", data);
+    this._log("DingolyticsSDK: trackEvent: event=", event, "data=", data);
   }
 
   trackPageView(path: string) {
@@ -100,8 +100,8 @@ class DingolyticsTracker {
 
   _track(data: object) {
     var event = {...this._template, ...data};
-    this._log("DingolyticsTracker: _track: event=", event);
+    this._log("DingolyticsSDK: _track: event=", event);
   }
 }
 
-export { DingolyticsTracker };
+export { DingolyticsSDK };
