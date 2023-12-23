@@ -21,7 +21,7 @@ type Event = {
   user_id?: string | null;
   user_props?: object;
 
-  // Automatically detected device information:
+  // Automatically detected client-side details:
   browser_agent: string;
   browser_name: string;
   browser_version: string;
@@ -38,7 +38,7 @@ const Utils = {
 
   isDocumentUrl: (url: string) => {
     const regex = /\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|rtf|rar|gz|zip|pkg|7z|mp4|mp3|mov)$/i;
-    return url.match(regex)
+    return regex.test(url);
   },
 
   isMobile: () => {
