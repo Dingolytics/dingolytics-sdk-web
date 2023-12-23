@@ -4,6 +4,7 @@ type Options = {
   app: string;
   dsn: string;
   debug?: boolean;
+  callback?: Function;
   autoTrackPageViews?: boolean;
   autoTrackLinks?: boolean;
   autoTrackDownloads?: boolean;
@@ -30,7 +31,7 @@ type Event = {
   referrer: string;
 };
 
-const Helpers = {
+const Utils = {
   isExternalLink: (link: HTMLAnchorElement) => {
     return link && link.href && link.host && link.host !== location.host
   },
@@ -38,6 +39,10 @@ const Helpers = {
   isMobile: () => {
     const regex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
     return regex.test(navigator.userAgent);
+  },
+
+  getCurrentPath: () => {
+    return location.pathname + location.search + location.hash;
   }
 }
 
@@ -61,14 +66,14 @@ class DingolyticsSDK {
     this._template = {
       app: this.options.app,
       name: "",
-      path: location.href,
+      path: location.href + location.hash,
       props: {},
       user_id: null,
       user_props: {},
       browser_name: platform.name || "",
       browser_agent: platform.ua || "",
       browser_version: platform.version || "",
-      is_mobile: Helpers.isMobile(),
+      is_mobile: Utils.isMobile(),
       os_name: os.family || "",
       os_version: os.version || "",
       referrer: document.referrer || "",
@@ -80,7 +85,7 @@ class DingolyticsSDK {
     this._log("DingolyticsSDK: init", this.options);
 
     if (this.options.autoTrackPageViews) {
-      this.trackPageView(location.pathname);
+      this.trackPageView();
     }
   }
 
@@ -90,17 +95,37 @@ class DingolyticsSDK {
     this._log("DingolyticsSDK: setUser:", userId, userProps);
   }
 
-  trackEvent(event: string, data: any) {
-    this._log("DingolyticsSDK: trackEvent: event=", event, "data=", data);
+  trackEvent(name: string, data: object) {
+    this._track({ name, ...(data || {}) });
   }
 
-  trackPageView(path: string) {
+  trackPageView(path?: string) {
+    path = path || Utils.getCurrentPath()
     this._track({ name: "page_view", path });
   }
 
   _track(data: object) {
     var event = {...this._template, ...data};
     this._log("DingolyticsSDK: _track: event=", event);
+    const request = new XMLHttpRequest();
+    const callback = this.options.callback;
+    request.addEventListener('readystatechange', () => {
+      if (callback && (request.readyState === 4)) {
+        callback({ event })
+      }
+    });
+    request.addEventListener('error', (error) => {
+      if (callback) {
+        callback({ error })
+      }
+    });
+    try {
+      request.open('POST', this.options.dsn, true);
+      request.setRequestHeader('content-type', 'application/json');
+      request.send(JSON.stringify(event));
+    } catch (error) {
+      this._log("DingolyticsSDK: _track: error=", error);
+    }
   }
 }
 
