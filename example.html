@@ -3,10 +3,38 @@
     <title>Example for Dingolytics Tracker</title>
     <script src="dist/index.js"></script>
     <script>
-      var tracker = new DingolyticsTracker({
-        dsn: 'http://localhost:8080/ingest/1234567890abcdef',
+      var dingolytics = new DingolyticsTracker({
+        app: "example",
+        dsn: "http://localhost:8080/ingest/1234567890abcdef",
+        debug: true,
+        autoTrackPageViews: true,
       });
-      // tracker.trackPageView();
+      dingolytics.setUser("1234567890abcdef", {"role": "designer"})
+      dingolytics.init();
     </script>
   </head>
+  <body>
+    <h1>Example for Dingolytics Tracker</h1>
+    <a name="welcome"></a>
+    <p>
+      This is an example for Dingolytics Tracker.
+    </p>
+    <p>
+      Internal link example:
+      <a href="example.html">
+        Home page
+      </a>
+    </p>
+    <p>
+      External link example:
+      <a href="https://www.dingolytics.com/" target="_blank">
+        www.dingolytics.com
+      </a>
+    </p>
+    <p>
+      Anchor link example:
+      <a href="#welcome">
+        #welcome
+      </a>
+    </p>
 </html>
