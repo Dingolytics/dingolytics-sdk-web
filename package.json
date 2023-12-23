@@ -2,7 +2,7 @@
     "name": "@dingolytics/web",
     "version": "0.1.0",
     "description": "Dingolytics SDK for JavaScript / TypeScript to track web pages views and custom application events",
-    "main": "dist/index.js",
+    "main": "dist/index.min.js",
     "scripts": {
         "build": "webpack --mode production",
         "build:dev": "webpack --mode development",
