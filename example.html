@@ -7,15 +7,16 @@
         app: "example",
         dsn: "http://localhost:8080/ingest/1234567890abcdef",
         debug: true,
-        autoTrackPageViews: true,
+        autoPageViews: true,
+        autoHistory: true,
       });
       dingolytics.setUser("1234567890abcdef", {"role": "designer"})
       dingolytics.init();
     </script>
   </head>
   <body>
-    <h1>Example for Dingolytics Tracker</h1>
     <a name="welcome"></a>
+    <h1>Example for Dingolytics Tracker</h1>
     <p>
       This is an example for Dingolytics SDK based views and clicks tracker.
     </p>
@@ -32,9 +33,10 @@
       </a>
     </p>
     <p>
-      Anchor link example:
-      <a href="#welcome">
-        #welcome
-      </a>
+      <a name="examples"></a>
+      Anchor links example:
+      <a href="#welcome">#welcome</a>
+      |
+      <a href="#examples">#examples</a>
     </p>
 </html>

@@ -5,11 +5,11 @@ type Options = {
   dsn: string;
   debug?: boolean;
   callback?: Function;
-  autoTrackPageViews?: boolean;
-  autoTrackLinks?: boolean;
-  autoTrackDownloads?: boolean;
-  autoTrackForms?: boolean;
-  // autoTrackSPA: boolean;
+  autoPageViews?: boolean;
+  autoLinks?: boolean;
+  autoDownloads?: boolean;
+  autoForms?: boolean;
+  autoHistory?: boolean;
 };
 
 type Event = {
@@ -57,10 +57,11 @@ class DingolyticsSDK {
       // app: "",
       // dsn: "",
       debug: false,
-      autoTrackPageViews: true,
-      autoTrackLinks: true,
-      autoTrackDownloads: false,
-      autoTrackForms: false,
+      autoPageViews: true,
+      autoLinks: true,
+      autoDownloads: false,
+      autoForms: false,
+      autoHistory: false,
       ...options
     }
     this._template = {
@@ -82,10 +83,16 @@ class DingolyticsSDK {
   }
 
   init() {
-    this._log("DingolyticsSDK: init", this.options);
+    this._log("DingolyticsSDK: init:", this.options);
 
-    if (this.options.autoTrackPageViews) {
+    if (this.options.autoPageViews) {
       this.trackPageView();
+    }
+
+    if (this.options.autoHistory) {
+      window.addEventListener("popstate", () => {
+        this.trackPageView();
+      });
     }
   }
 
