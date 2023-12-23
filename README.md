@@ -23,3 +23,7 @@ Direct JavaScript include:
 ## Usage
 
 ...
+
+## License
+
+Dingolytics SDKs for JavaScript are licensed under the MIT license. See [LICENSE](LICENSE) for more information.

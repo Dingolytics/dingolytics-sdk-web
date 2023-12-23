@@ -18,7 +18,7 @@ module.exports = (env, argv) => {
       extensions: ['.tsx', '.ts', '.js'],
     },
     output: {
-      filename: 'index.js',
+      filename: 'index.min.js',
       path: path.resolve(__dirname, 'dist'),
       libraryTarget: 'umd',
       globalObject: 'this'
