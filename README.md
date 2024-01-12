@@ -8,7 +8,7 @@ Dingolytics SDKs for JavaScript
 Direct JavaScript include:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@dingolytics/web@0.1.0/dist/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@dingolytics/web@0.1.10/dist/index.min.js"></script>
 <script>
     var dingolytics = new DingolyticsSDK({
         app: "example",

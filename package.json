@@ -1,6 +1,6 @@
 {
     "name": "@dingolytics/web",
-    "version": "0.1.0",
+    "version": "0.1.10",
     "description": "Dingolytics SDK for JavaScript / TypeScript to track web pages views and custom application events",
     "main": "dist/index.min.js",
     "scripts": {

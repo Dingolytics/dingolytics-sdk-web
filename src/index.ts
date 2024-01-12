@@ -17,14 +17,14 @@ type Event = {
   app: string;
   name: string;
   path: string;
-  props?: object;
+  attrs?: object | null;
+  attrs_raw?: string | null;
   user_id?: string | null;
-  user_props?: object;
 
   // Automatically detected client-side details:
-  browser_agent: string;
-  browser_name: string;
-  browser_version: string;
+  client_agent: string;
+  client_name: string;
+  client_version: string;
   is_mobile: boolean;
   os_name: string;
   os_version: string;
@@ -73,12 +73,12 @@ class DingolyticsSDK {
       app: this.options.app,
       name: "",
       path: location.href + location.hash,
-      props: {},
+      attrs: null,
+      attrs_raw: null,
       user_id: null,
-      user_props: {},
-      browser_name: platform.name || "",
-      browser_agent: platform.ua || "",
-      browser_version: platform.version || "",
+      client_name: platform.name || "",
+      client_agent: platform.ua || "",
+      client_version: platform.version || "",
       is_mobile: Utils.isMobile(),
       os_name: os.family || "",
       os_version: os.version || "",
@@ -117,7 +117,7 @@ class DingolyticsSDK {
 
   setUser(userId: string, userProps?: object) {
     this._template.user_id = userId ? userId : null;
-    this._template.user_props = userProps ? userProps : {};
+    // this._template.user_props = userProps ? userProps : {};
     this._log("DingolyticsSDK: setUser:", userId, userProps);
   }
 
@@ -155,6 +155,8 @@ class DingolyticsSDK {
 
   _track(data: object) {
     var event = {...this._template, ...data};
+    event.attrs_raw = event.attrs ? JSON.stringify(event.attrs) : null;
+    delete event.attrs;
     this._log("DingolyticsSDK: _track: event=", event);
     const request = new XMLHttpRequest();
     const callback = this.options.callback;
