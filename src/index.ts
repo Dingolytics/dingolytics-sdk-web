@@ -1,5 +1,10 @@
 import platform from "platform";
 
+type Storage = {
+  getItem: Function;
+  setItem: Function;
+};
+
 type Options = {
   app: string;
   dsn: string;
@@ -10,6 +15,7 @@ type Options = {
   autoDownloads?: boolean;
   autoForms?: boolean;
   autoHistory?: boolean;
+  storage?: Storage;
 };
 
 type Event = {
@@ -17,12 +23,14 @@ type Event = {
   app: string;
   name: string;
   path: string;
+  host: string | null;
   attrs?: object | null;
   attrs_raw?: string | null;
   user_id?: string | null;
 
   // Automatically detected client-side details:
-  client_agent: string;
+  client_id: string;
+  client_user_agent: string;
   client_name: string;
   client_version: string;
   is_mobile: boolean;
@@ -48,12 +56,34 @@ const Utils = {
 
   getCurrentPath: () => {
     return location.pathname + location.search + location.hash;
+  },
+
+  getCurrentHost: () => {
+    return location.host;
+  },
+
+  generateUUIDv4: () => {
+    return "10000000-1000-4000-8000-100000000000".replace(
+      /[018]/g, (c) => (
+        parseInt(c) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> parseInt(c) / 4
+      ).toString(16)
+    );
+  },
+
+  getOrCreateClientId: (storage: Storage) => {
+    let id: string | null = storage.getItem("dingolytics:client_id");
+    if (!id) {
+      id = Utils.generateUUIDv4();
+      storage.setItem("dingolytics:client_id", id);
+    }
+    return id;
   }
 }
 
 class DingolyticsSDK {
   options: Options;
   _log: Function;
+  _storage: Storage;
   _template: Event;
 
   constructor(options: Options) {
@@ -69,15 +99,18 @@ class DingolyticsSDK {
       autoForms: false,
       ...options
     }
+    this._storage = options.storage ? options.storage : sessionStorage;
     this._template = {
       app: this.options.app,
       name: "",
-      path: location.href + location.hash,
+      path: Utils.getCurrentPath(),
+      host: Utils.getCurrentHost(),
       attrs: null,
       attrs_raw: null,
       user_id: null,
+      client_id: Utils.getOrCreateClientId(this._storage),
       client_name: platform.name || "",
-      client_agent: platform.ua || "",
+      client_user_agent: platform.ua || "",
       client_version: platform.version || "",
       is_mobile: Utils.isMobile(),
       os_name: os.family || "",
@@ -89,6 +122,7 @@ class DingolyticsSDK {
 
   init() {
     this._log("DingolyticsSDK: init:", this.options);
+    // this._log("DingolyticsSDK: client_id:", this._template.client_id);
 
     if (this.options.autoPageViews) {
       this.trackPageView();
