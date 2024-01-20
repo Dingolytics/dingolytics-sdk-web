@@ -10,18 +10,15 @@ type Options = {
   dsn: string;
   debug?: boolean;
   callback?: Function;
-  autoPageViews?: boolean;
-  autoExternalLinks?: boolean;
-  autoDownloads?: boolean;
-  autoForms?: boolean;
-  autoHistory?: boolean;
+  autoTrackEvents?: Array<string>;
   storage?: Storage;
+  storageClientIdKey?: string;
 };
 
 type Event = {
   // Application specific fields:
   app: string;
-  name: string;
+  event: string;
   path: string;
   host: string | null;
   attrs?: object | null;
@@ -70,11 +67,12 @@ const Utils = {
     );
   },
 
-  getOrCreateClientId: (storage: Storage) => {
-    let id: string | null = storage.getItem("dingolytics:client_id");
+  getOrCreateClientId: (storage: Storage, key: string) => {
+    key = key || "dingolytics:client_id";
+    let id: string | null = storage.getItem(key);
     if (!id) {
       id = Utils.generateUUIDv4();
-      storage.setItem("dingolytics:client_id", id);
+      storage.setItem(key, id);
     }
     return id;
   }
@@ -82,6 +80,7 @@ const Utils = {
 
 class DingolyticsSDK {
   options: Options;
+  _builtInEvents: { [key: string]: Function };
   _log: Function;
   _storage: Storage;
   _template: Event;
@@ -89,26 +88,28 @@ class DingolyticsSDK {
   constructor(options: Options) {
     const os = platform.os || {};
     this.options = {
-      // app: "",
-      // dsn: "",
       debug: false,
-      autoPageViews: true,
-      autoHistory: false,
-      autoExternalLinks: false,
-      autoDownloads: false,
-      autoForms: false,
+      autoTrackEvents: ["page_view"],
+      storageClientIdKey: "dingolytics:client_id",
       ...options
+    }
+    this._builtInEvents = {
+      "_history": this._handleHistory.bind(this),
+      "page_view": this.trackPageView.bind(this),
+      "document_download": this._handleDocumentDownloads.bind(this),
+      "external_link": this._handleExternalLinks.bind(this),
+      "form_submit": this._handleFormSubmit.bind(this),
     }
     this._storage = options.storage ? options.storage : sessionStorage;
     this._template = {
       app: this.options.app,
-      name: "",
+      event: "",
       path: Utils.getCurrentPath(),
       host: Utils.getCurrentHost(),
       attrs: null,
       attrs_raw: null,
       user_id: null,
-      client_id: Utils.getOrCreateClientId(this._storage),
+      client_id: Utils.getOrCreateClientId(this._storage, this.options.storageClientIdKey!),
       client_name: platform.name || "",
       client_user_agent: platform.ua || "",
       client_version: platform.version || "",
@@ -123,68 +124,47 @@ class DingolyticsSDK {
   init() {
     this._log("DingolyticsSDK: init:", this.options);
     // this._log("DingolyticsSDK: client_id:", this._template.client_id);
-
-    if (this.options.autoPageViews) {
-      this.trackPageView();
-    }
-
-    if (this.options.autoHistory) {
-      window.addEventListener("popstate", () => {
-        this.trackPageView();
-      });
-    }
-
-    if (this.options.autoExternalLinks || this.options.autoDownloads) {
-      document.addEventListener("click", (event) => {
-        const link = (event.target as HTMLAnchorElement);
-        this._trackLinkClick(link);
-      });
-    }
-
-    if (this.options.autoForms) {
-      document.addEventListener("submit", (event) => {
-        const form = (event.target as HTMLFormElement);
-        this.trackFormSubmit(form);
-      });
-    }
-  }
-
-  setUser(userId: string, userProps?: object) {
-    this._template.user_id = userId ? userId : null;
-    // this._template.user_props = userProps ? userProps : {};
-    this._log("DingolyticsSDK: setUser:", userId, userProps);
-  }
-
-  trackEvent(name: string, data: object) {
-    this._track({ name, ...(data || {}) });
-  }
-
-  trackPageView(path?: string) {
-    path = path || Utils.getCurrentPath()
-    this._track({ name: "page_view", path });
-  }
-
-  trackDocumentDownload(path: string) {
-    this._track({ name: "document_download", path });
-  }
-
-  trackExternalLink(path: string) {
-    this._track({ name: "external_link", path });
-  }
-
-  trackFormSubmit(form: HTMLFormElement) {
-    this._track({ name: "form_submit", path: form.action });
-  }
-
-  _trackLinkClick(link: HTMLAnchorElement) {
-    if (link && link.href) {
-      const noQueryUrl = link.href.split('?')[0];
-      if (this.options.autoDownloads && Utils.isDocumentUrl(noQueryUrl)) {
-        this.trackDocumentDownload(noQueryUrl);
-      } else if (this.options.autoExternalLinks && Utils.isExternalLink(link)) {
-        this.trackExternalLink(link.href);
+    if (this.options.autoTrackEvents) {
+      for (const eventName of this.options.autoTrackEvents) {
+        if (!this._builtInEvents[eventName]) {
+          this._log("DingolyticsSDK: init: unknown event name:", eventName);
+        } else {
+          this._builtInEvents[eventName]();
+        }
       }
     }
+  }
+
+  _handleDocumentDownloads() {
+    document.addEventListener("click", (event) => {
+      const link = (event.target as HTMLAnchorElement);
+      const noQueryUrl = link.href.split('?')[0];
+      if (Utils.isDocumentUrl(noQueryUrl)) {
+        this.trackDocumentDownload(noQueryUrl);
+      }
+    });
+  }
+
+  _handleExternalLinks() {
+    document.addEventListener("click", (event) => {
+      const link = (event.target as HTMLAnchorElement);
+      if (Utils.isExternalLink(link)) {
+        this.trackExternalLink(link.href);
+      }
+    });
+  }
+
+  _handleHistory() {
+    window.addEventListener("popstate", () => {
+      this.trackPageView();
+    });
+  }
+
+  _handleFormSubmit() {
+    document.addEventListener("submit", (event) => {
+      const form = (event.target as HTMLFormElement);
+      this.trackFormSubmit(form);
+    });
   }
 
   _track(data: object) {
@@ -211,6 +191,33 @@ class DingolyticsSDK {
     } catch (error) {
       this._log("DingolyticsSDK: _track: error=", error);
     }
+  }
+
+  setUser(userId: string /*, userProps?: object*/) {
+    this._template.user_id = userId ? userId : null;
+    // this._template.user_props = userProps ? userProps : {};
+    this._log("DingolyticsSDK: setUser:", userId /*, userProps*/);
+  }
+
+  trackEvent(name: string, data: object) {
+    this._track({ name, ...(data || {}) });
+  }
+
+  trackPageView(path?: string) {
+    path = path || Utils.getCurrentPath()
+    this._track({ name: "page_view", path });
+  }
+
+  trackDocumentDownload(path: string) {
+    this._track({ name: "document_download", path });
+  }
+
+  trackExternalLink(path: string) {
+    this._track({ name: "external_link", path });
+  }
+
+  trackFormSubmit(form: HTMLFormElement) {
+    this._track({ name: "form_submit", path: form.action });
   }
 }
 

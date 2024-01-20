@@ -17,6 +17,9 @@ module.exports = (env, argv) => {
     resolve: {
       extensions: ['.tsx', '.ts', '.js'],
     },
+    optimization: {
+      minimize: isProduction,
+    },
     output: {
       filename: 'index.min.js',
       path: path.resolve(__dirname, 'dist'),
