@@ -80,7 +80,6 @@ const Utils = {
 
 class DingolyticsSDK {
   options: Options;
-  _builtInEvents: { [key: string]: Function };
   _log: Function;
   _storage: Storage;
   _template: Event;
@@ -92,13 +91,6 @@ class DingolyticsSDK {
       autoTrackEvents: ["page_view"],
       storageClientIdKey: "dingolytics:client_id",
       ...options
-    }
-    this._builtInEvents = {
-      "_history": this._handleHistory.bind(this),
-      "page_view": this.trackPageView.bind(this),
-      "document_download": this._handleDocumentDownloads.bind(this),
-      "external_link": this._handleExternalLinks.bind(this),
-      "form_submit": this._handleFormSubmit.bind(this),
     }
     this._storage = options.storage ? options.storage : sessionStorage;
     this._template = {
@@ -122,49 +114,57 @@ class DingolyticsSDK {
   }
 
   init() {
-    this._log("DingolyticsSDK: init:", this.options);
+    this._log("DingolyticsSDK: init:", this.options, this._template);
+
+    const buildInEvents: { [key: string]: Function } = {
+      "_history": () => {
+        window.addEventListener("popstate", () => {
+          this.trackPageView();
+        });
+      },
+
+      "page_view": () => {
+        this.trackPageView();
+      },
+
+      "document_download": () => {
+        document.addEventListener("click", (event) => {
+          const link = (event.target as HTMLAnchorElement);
+          const noQueryUrl = link.href.split('?')[0];
+          if (Utils.isDocumentUrl(noQueryUrl)) {
+            this.trackDocumentDownload(noQueryUrl);
+          }
+        });
+      },
+
+      "external_link": () => {
+        document.addEventListener("click", (event) => {
+          const link = (event.target as HTMLAnchorElement);
+          if (Utils.isExternalLink(link)) {
+            this.trackExternalLink(link.href);
+          }
+        });
+      },
+
+      "form_submit": () => {
+        document.addEventListener("submit", (event) => {
+          const form = (event.target as HTMLFormElement);
+          this.trackFormSubmit(form);
+        });
+      },
+    }
+
     // this._log("DingolyticsSDK: client_id:", this._template.client_id);
     if (this.options.autoTrackEvents) {
-      for (const eventName of this.options.autoTrackEvents) {
-        if (!this._builtInEvents[eventName]) {
-          this._log("DingolyticsSDK: init: unknown event name:", eventName);
+      for (const event of this.options.autoTrackEvents) {
+        const handler = (buildInEvents[event] as Function);
+        if (handler) {
+          handler();
         } else {
-          this._builtInEvents[eventName]();
+          this._log("DingolyticsSDK: init: unknown event name:", event);
         }
       }
     }
-  }
-
-  _handleDocumentDownloads() {
-    document.addEventListener("click", (event) => {
-      const link = (event.target as HTMLAnchorElement);
-      const noQueryUrl = link.href.split('?')[0];
-      if (Utils.isDocumentUrl(noQueryUrl)) {
-        this.trackDocumentDownload(noQueryUrl);
-      }
-    });
-  }
-
-  _handleExternalLinks() {
-    document.addEventListener("click", (event) => {
-      const link = (event.target as HTMLAnchorElement);
-      if (Utils.isExternalLink(link)) {
-        this.trackExternalLink(link.href);
-      }
-    });
-  }
-
-  _handleHistory() {
-    window.addEventListener("popstate", () => {
-      this.trackPageView();
-    });
-  }
-
-  _handleFormSubmit() {
-    document.addEventListener("submit", (event) => {
-      const form = (event.target as HTMLFormElement);
-      this.trackFormSubmit(form);
-    });
   }
 
   _track(data: object) {
@@ -199,25 +199,25 @@ class DingolyticsSDK {
     this._log("DingolyticsSDK: setUser:", userId /*, userProps*/);
   }
 
-  trackEvent(name: string, data: object) {
-    this._track({ name, ...(data || {}) });
+  trackEvent(event: string, data: object) {
+    this._track({ event, ...(data || {}) });
   }
 
   trackPageView(path?: string) {
     path = path || Utils.getCurrentPath()
-    this._track({ name: "page_view", path });
+    this._track({ event: "page_view", path });
   }
 
   trackDocumentDownload(path: string) {
-    this._track({ name: "document_download", path });
+    this._track({ event: "document_download", path });
   }
 
   trackExternalLink(path: string) {
-    this._track({ name: "external_link", path });
+    this._track({ event: "external_link", path });
   }
 
   trackFormSubmit(form: HTMLFormElement) {
-    this._track({ name: "form_submit", path: form.action });
+    this._track({ event: "form_submit", path: form.action });
   }
 }
 

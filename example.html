@@ -7,13 +7,10 @@
         app: "example",
         dsn: "http://localhost:8080/ingest/1234567890abcdef",
         debug: true,
-        autoPageViews: true,
-        autoDownloads: true,
-        autoExternalLinks: true,
-        autoForms: true,
-        autoHistory: true,
+        // autoTrackEvents: ["page_view"],
+        autoTrackEvents: ["_history", "page_view", "document_download", "external_link", "form_submit"],
       });
-      dingolytics.setUser("1234567890abcdef", {"role": "designer"})
+      dingolytics.setUser("1234567890abcdef")
       dingolytics.init();
     </script>
   </head>
